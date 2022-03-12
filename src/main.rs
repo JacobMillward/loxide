@@ -1,5 +1,6 @@
-use loxide::run_file;
 use std::env;
+
+use loxide::frontend::run_file;
 
 fn print_help() {
     println!(
