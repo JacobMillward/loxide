@@ -2,9 +2,19 @@ use std::fmt;
 
 #[derive(Debug)]
 pub struct LoxErrorReport {
-    line_number: usize,
-    location: String,
-    message: String,
+    pub line_number: usize,
+    pub location: String,
+    pub message: String,
+}
+
+impl LoxErrorReport {
+    pub fn new(line_number: usize, location: String, message: String) -> LoxErrorReport {
+        LoxErrorReport {
+            line_number,
+            location,
+            message,
+        }
+    }
 }
 
 impl fmt::Display for LoxErrorReport {

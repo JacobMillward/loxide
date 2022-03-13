@@ -7,3 +7,4 @@ edition = "2021"
 
 [dependencies]
 ctrlc = { version = "3.0", features = ["termination"] }
+unicode-segmentation = "1.9.0"
