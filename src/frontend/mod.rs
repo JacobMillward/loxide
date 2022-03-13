@@ -1,9 +1,11 @@
 mod error_report;
+mod interactive;
 mod script_error;
 
 use std::fs;
 
 pub use error_report::LoxErrorReport;
+pub use interactive::run_interactive;
 pub use script_error::LoxScriptError;
 
 pub fn run_file(file_path: &str) -> Result<(), LoxScriptError> {
