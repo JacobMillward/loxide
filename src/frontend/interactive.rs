@@ -32,6 +32,7 @@ pub fn run_interactive() -> Result<(), LoxScriptError> {
             }
             Err(TryRecvError::Empty) => {
                 if has_quit.load(Ordering::Relaxed) {
+                    println!();
                     println!("Exiting...");
                     break;
                 }
