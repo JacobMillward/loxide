@@ -10,6 +10,7 @@ use crate::frontend::LoxErrorReport;
 use super::token::Token;
 use super::token::TokenType::*;
 
+#[derive(Clone, Debug)]
 pub enum PossibleToken {
     Ok(Token),
     Err(LoxErrorReport),

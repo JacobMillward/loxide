@@ -1,3 +1,4 @@
+#[derive(PartialEq, Debug, Clone)]
 #[allow(dead_code)]
 pub enum TokenType {
     // Single Character Tokens
@@ -49,12 +50,14 @@ pub enum TokenType {
     EOF,
 }
 
+#[derive(Debug, Clone)]
 pub enum Literal {
     Identifier(String),
     String(String),
     Number(f64),
 }
 
+#[derive(Debug, Clone)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
