@@ -247,16 +247,16 @@ mod test {
     }
 
     #[rstest]
-    #[case(
+    #[case::simple_digits(
         "1 < 3 + 4",
         vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (EOF, "")])]
-    #[case(
+    #[case::digits_with_comments_and_string(
         "1 < 3 + 4 // This is a comment\n\"Hello, world!\" 2 // This is another comment",
         vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (String, "Hello, world!"), (Number, "2"), (EOF, "")])]
-    #[case(
+    #[case::decimal_number(
         "1.234",
         vec![(Number, "1.234"), (EOF, "")])]
-    #[case(
+    #[case::complex_decimal_number(
         "1.234.567.123",
         vec![(Number, "1.234"), (Dot, "."), (Number, "567.123"), (EOF, "")])]
     fn test_scan_tokens(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
