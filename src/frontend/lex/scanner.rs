@@ -7,6 +7,7 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::frontend::lex::token::TokenType;
 use crate::frontend::LoxErrorReport;
 
+use super::token::Literal;
 use super::token::Token;
 use super::token::TokenType::*;
 
@@ -49,6 +50,7 @@ impl Scanner {
                 };
 
             match g {
+                // Single character tokens
                 "(" => scanner.add_token(LeftParen, source),
                 ")" => scanner.add_token(RightParen, source),
                 "{" => scanner.add_token(LeftBrace, source),
@@ -60,11 +62,13 @@ impl Scanner {
                 ";" => scanner.add_token(Semicolon, source),
                 "*" => scanner.add_token(Star, source),
 
+                // One or two character tokens
                 "!" => add_if_next_matches("=", BangEqual, Bang),
                 "=" => add_if_next_matches("=", EqualEqual, Equal),
                 "<" => add_if_next_matches("=", LessEqual, Less),
                 ">" => add_if_next_matches("=", GreaterEqual, Greater),
 
+                // Comments or division
                 "/" => {
                     if scanner.next_matches(&mut grapheme_iter, "/") {
                         while let Some(_) = grapheme_iter.next_if(|(_, g)| *g != "\n") {}
@@ -77,12 +81,19 @@ impl Scanner {
                 // Ignore whitespace
                 " " | "\r" | "\t" => {}
 
+                // Newline
                 "\n" => scanner.line_number += 1,
 
+                // String
                 "\"" => scanner.parse_string(&mut grapheme_iter, source),
 
+                // Number
                 _ if is_digit(g) => scanner.parse_number(&mut grapheme_iter, source),
 
+                // Identifier
+                _ if is_alpha(g) => scanner.parse_identifier(&mut grapheme_iter, source),
+
+                // Invalid token
                 _ => scanner.tokens.push(PossibleToken::Err(LoxErrorReport::new(
                     scanner.line_number,
                     format!(""),
@@ -106,8 +117,8 @@ impl Scanner {
     /**
      * Gets the lexeme from the current line
      */
-    fn get_lexeme(&self, line: &str) -> String {
-        line[self.lexeme_start..self.lexeme_current + 1].to_string()
+    fn get_lexeme(&self, src: &str) -> String {
+        src[self.lexeme_start..self.lexeme_current + 1].to_string()
     }
 
     /**
@@ -118,6 +129,18 @@ impl Scanner {
             token_type,
             self.get_lexeme(src),
             None,
+            self.line_number,
+        )))
+    }
+
+    /**
+     * Adds a token with a literal to the list of tokens
+     */
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Literal, src: &str) {
+        self.tokens.push(PossibleToken::Ok(Token::new(
+            token_type,
+            self.get_lexeme(src),
+            Some(literal),
             self.line_number,
         )))
     }
@@ -161,7 +184,7 @@ impl Scanner {
                 self.lexeme_start += 1;
                 self.lexeme_current -= 1;
 
-                self.add_token(TokenType::String, src);
+                self.add_literal_token(String, Literal::String(self.get_lexeme(src)), src);
 
                 // Reset the start and current
                 self.lexeme_current += 1;
@@ -204,7 +227,35 @@ impl Scanner {
             grapheme_iter.next();
         }
 
-        self.add_token(TokenType::Number, src);
+        let parsed_number = self.get_lexeme(src).parse::<f64>();
+
+        if parsed_number.is_err() {
+            self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
+                self.line_number,
+                format!(""),
+                format!(
+                    "Invalid number at line {} pos {}",
+                    self.line_number, self.lexeme_start
+                ),
+            )));
+            return;
+        }
+
+        self.add_literal_token(Number, Literal::Number(parsed_number.unwrap()), src);
+    }
+
+    fn parse_identifier(&mut self, grapheme_iter: &mut Peekable<GraphemeIndices>, src: &str) {
+        while let Some((next_idx, g)) = grapheme_iter.peek() {
+            if !is_alphanumeric(g) {
+                break;
+            }
+
+            self.lexeme_current = *next_idx;
+            grapheme_iter.next();
+        }
+
+        let literal = self.get_lexeme(src);
+        self.add_literal_token(Identifier, Literal::Identifier(literal), src);
     }
 }
 
@@ -216,6 +267,30 @@ fn is_digit(g: &str) -> bool {
 
     match char {
         Some(c) => c.is_digit(10),
+        None => false,
+    }
+}
+
+/**
+ * Checks if the given string is an alpha character (a-z, A-Z, _)
+ */
+fn is_alpha(g: &str) -> bool {
+    let char = g.chars().next();
+
+    match char {
+        Some(c) => c.is_alphabetic() || c == '_',
+        None => false,
+    }
+}
+
+/**
+ * Checks if the given string is an alphanumeric character (a-z, A-Z, 0-9, _)
+ */
+fn is_alphanumeric(g: &str) -> bool {
+    let char = g.chars().next();
+
+    match char {
+        Some(c) => c.is_alphanumeric() || c == '_',
         None => false,
     }
 }
