@@ -1,5 +1,6 @@
 #[allow(dead_code)]
 pub enum TokenType {
+    // Single Character Tokens
     LeftParen,
     RightParen,
     LeftBrace,
@@ -12,6 +13,7 @@ pub enum TokenType {
     Slash,
     Star,
 
+    // One or Two Character Tokens
     Bang,
     BangEqual,
     Equal,
@@ -21,10 +23,12 @@ pub enum TokenType {
     Less,
     LessEqual,
 
+    // Literals
     Identifier,
     String,
     Number,
 
+    // Keywords
     And,
     Class,
     Else,
@@ -45,18 +49,30 @@ pub enum TokenType {
     EOF,
 }
 
-pub struct Token<'a> {
+pub enum Literal {
+    Identifier(String),
+    String(String),
+    Number(f64),
+}
+
+pub struct Token {
     pub token_type: TokenType,
-    pub lexeme: &'a str,
-    // literal?
+    pub lexeme: String,
+    pub literal: Option<Literal>,
     pub line_number: usize,
 }
 
-impl<'a> Token<'a> {
-    pub fn new(token_type: TokenType, lexeme: &'a str, line_number: usize) -> Token<'a> {
+impl Token {
+    pub fn new(
+        token_type: TokenType,
+        lexeme: String,
+        literal: Option<Literal>,
+        line_number: usize,
+    ) -> Token {
         Token {
             token_type,
             lexeme,
+            literal,
             line_number,
         }
     }

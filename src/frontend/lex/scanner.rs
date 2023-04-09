@@ -1,3 +1,7 @@
+use std::iter::Peekable;
+use std::string::String;
+
+use unicode_segmentation::GraphemeIndices;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::frontend::lex::token::TokenType;
@@ -6,40 +10,103 @@ use crate::frontend::LoxErrorReport;
 use super::token::Token;
 use super::token::TokenType::*;
 
-pub enum PossibleToken<'a> {
-    Ok(Token<'a>),
+pub enum PossibleToken {
+    Ok(Token),
     Err(LoxErrorReport),
 }
 
-pub fn scan_tokens<'a>(source: &'a str) -> Vec<PossibleToken<'a>> {
-    let mut tokens: Vec<PossibleToken> = Vec::new();
+pub struct Scanner {
+    lexeme_start: usize,
+    lexeme_current: usize,
+    tokens: Vec<PossibleToken>,
+}
 
-    for (line_number, line) in source.lines().enumerate() {
-        for (idx, g) in line.graphemes(true).enumerate() {
-            let mut add_token = |token_type: TokenType| {
-                tokens.push(PossibleToken::Ok(Token::new(token_type, g, line_number)))
-            };
+impl Scanner {
+    pub fn scan_tokens(source: &str) -> Vec<PossibleToken> {
+        let mut scanner = Scanner {
+            lexeme_start: 0,
+            lexeme_current: 0,
+            tokens: Vec::new(),
+        };
+
+        for (line_number, line) in source.lines().enumerate() {
+            scanner.scan_line(line, line_number);
+        }
+
+        scanner.tokens
+    }
+
+    fn scan_line(&mut self, line: &str, line_number: usize) {
+        // Get an iterator over the graphemes in the line
+        let mut grapheme_iter = UnicodeSegmentation::grapheme_indices(line, true).peekable();
+        self.lexeme_start = 0;
+        self.lexeme_current = 0;
+
+        while let Some((grapheme_idx, g)) = grapheme_iter.next() {
+            self.lexeme_start = grapheme_idx;
+            self.lexeme_current = grapheme_idx;
 
             match g {
-                "(" => add_token(LeftParen),
-                ")" => add_token(RightParen),
-                "{" => add_token(LeftBrace),
-                "}" => add_token(RightBrace),
-                "," => add_token(Comma),
-                "." => add_token(Dot),
-                "-" => add_token(Minus),
-                "+" => add_token(Plus),
-                ";" => add_token(Semicolon),
-                "*" => add_token(Star),
+                "(" => self.add_token(LeftParen, line, line_number),
+                ")" => self.add_token(RightParen, line, line_number),
+                "{" => self.add_token(LeftBrace, line, line_number),
+                "}" => self.add_token(RightBrace, line, line_number),
+                "," => self.add_token(Comma, line, line_number),
+                "." => self.add_token(Dot, line, line_number),
+                "-" => self.add_token(Minus, line, line_number),
+                "+" => self.add_token(Plus, line, line_number),
+                ";" => self.add_token(Semicolon, line, line_number),
+                "*" => self.add_token(Star, line, line_number),
 
-                _ => tokens.push(PossibleToken::Err(LoxErrorReport::new(
+                "=" => {
+                    let token_type = if self.next_matches(&mut grapheme_iter, "=") {
+                        EqualEqual
+                    } else {
+                        Equal
+                    };
+
+                    self.add_token(token_type, line, line_number)
+                }
+
+                _ => self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
                     line_number,
                     format!(""),
-                    format!("Invalid token at line {} pos {}: {}", line_number, idx, g),
+                    format!(
+                        "Invalid token at line {} pos {}: {}",
+                        line_number, grapheme_idx, g
+                    ),
                 ))),
             }
         }
     }
 
-    tokens
+    fn get_lexeme(&self, line: &str) -> String {
+        line[self.lexeme_start..self.lexeme_current + 1].to_string()
+    }
+
+    fn add_token(&mut self, token_type: TokenType, line: &str, line_number: usize) {
+        self.tokens.push(PossibleToken::Ok(Token::new(
+            token_type,
+            self.get_lexeme(line),
+            None,
+            line_number,
+        )))
+    }
+
+    fn next_matches(
+        &mut self,
+        grapheme_iter: &mut Peekable<GraphemeIndices>,
+        expected: &str,
+    ) -> bool {
+        if let Some((_, nxt)) = grapheme_iter.peek() {
+            if *nxt == expected {
+                if let Some((next_idx, _)) = grapheme_iter.next() {
+                    self.lexeme_current = next_idx;
+                    return true;
+                }
+            }
+        }
+
+        false
+    }
 }
