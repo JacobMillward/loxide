@@ -80,10 +80,16 @@ impl Scanner {
         }
     }
 
+    /**
+     * Gets the lexeme from the current line
+     */
     fn get_lexeme(&self, line: &str) -> String {
         line[self.lexeme_start..self.lexeme_current + 1].to_string()
     }
 
+    /**
+     * Adds a token to the list of tokens
+     */
     fn add_token(&mut self, token_type: TokenType, line: &str, line_number: usize) {
         self.tokens.push(PossibleToken::Ok(Token::new(
             token_type,
@@ -93,6 +99,9 @@ impl Scanner {
         )))
     }
 
+    /**
+     * Checks if the next grapheme matches the expected string, and if so, advances the iterator
+     */
     fn next_matches(
         &mut self,
         grapheme_iter: &mut Peekable<GraphemeIndices>,
