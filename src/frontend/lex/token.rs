@@ -50,6 +50,7 @@ pub enum TokenType {
     EOF,
 }
 
+#[allow(dead_code)]
 #[derive(Debug, Clone)]
 pub enum Literal {
     Identifier(String),
