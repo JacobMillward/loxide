@@ -345,4 +345,38 @@ mod test {
             assert_eq!(token.lexeme, expected[i].1);
         }
     }
+
+    #[rstest]
+    #[case::simple_identifier(
+        "a",
+        vec![(Identifier, "a"), (EOF, "")])]
+    #[case::simple_identifier_with_number(
+        "a1",
+        vec![(Identifier, "a1"), (EOF, "")])]
+    #[case::simple_identifier_with_number_and_underscore(
+        "a1_",
+        vec![(Identifier, "a1_"), (EOF, "")])]
+    #[case::simple_identifier_with_number_and_underscore_and_alpha(
+        "a1_b",
+        vec![(Identifier, "a1_b"), (EOF, "")])]
+    #[case::simple_identifier_with_number_and_underscore_and_alpha_and_comment(
+        "a1_b // This is a comment",
+        vec![(Identifier, "a1_b"), (EOF, "")])]
+    #[case::identifer_starting_with_underscore(
+        "_a",
+        vec![(Identifier, "_a"), (EOF, "")])]
+    fn test_scan_tokens_identifier(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
+        let tokens = Scanner::scan_tokens(input);
+
+        assert_eq!(tokens.len(), expected.len());
+
+        let token = tokens[0].clone().unwrap();
+
+        assert_eq!(token.token_type, expected[0].0);
+        assert_eq!(token.lexeme, expected[0].1);
+
+        assert!(token.literal.is_some());
+        let literal = token.literal.unwrap();
+        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
+    }
 }
