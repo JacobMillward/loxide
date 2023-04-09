@@ -10,6 +10,7 @@ use crate::frontend::LoxErrorReport;
 use super::token::Literal;
 use super::token::Token;
 use super::token::TokenType::*;
+use super::token::KEYWORDS;
 
 #[derive(Clone, Debug)]
 pub enum PossibleToken {
@@ -255,7 +256,9 @@ impl Scanner {
         }
 
         let literal = self.get_lexeme(src);
-        self.add_literal_token(Identifier, Literal::Identifier(literal), src);
+
+        let token_type = KEYWORDS.get(&literal).unwrap_or(&Identifier).clone();
+        self.add_literal_token(token_type, Literal::Identifier(literal), src);
     }
 }
 
@@ -347,25 +350,89 @@ mod test {
     }
 
     #[rstest]
-    #[case::simple_identifier(
+    #[case::identifier(
         "a",
         vec![(Identifier, "a"), (EOF, "")])]
-    #[case::simple_identifier_with_number(
+    #[case::identifier_with_number(
         "a1",
         vec![(Identifier, "a1"), (EOF, "")])]
-    #[case::simple_identifier_with_number_and_underscore(
+    #[case::identifier_with_number_and_underscore(
         "a1_",
         vec![(Identifier, "a1_"), (EOF, "")])]
-    #[case::simple_identifier_with_number_and_underscore_and_alpha(
+    #[case::identifier_with_number_and_underscore_and_alpha(
         "a1_b",
         vec![(Identifier, "a1_b"), (EOF, "")])]
-    #[case::simple_identifier_with_number_and_underscore_and_alpha_and_comment(
+    #[case::identifier_with_number_and_underscore_and_alpha_and_comment(
         "a1_b // This is a comment",
         vec![(Identifier, "a1_b"), (EOF, "")])]
     #[case::identifer_starting_with_underscore(
         "_a",
         vec![(Identifier, "_a"), (EOF, "")])]
     fn test_scan_tokens_identifier(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
+        let tokens = Scanner::scan_tokens(input);
+
+        assert_eq!(tokens.len(), expected.len());
+
+        let token = tokens[0].clone().unwrap();
+
+        assert_eq!(token.token_type, expected[0].0);
+        assert_eq!(token.lexeme, expected[0].1);
+
+        assert!(token.literal.is_some());
+        let literal = token.literal.unwrap();
+        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
+    }
+
+    #[rstest]
+    #[case::keyword_and(
+        "and",
+        vec![(And, "and"), (EOF, "")])]
+    #[case::keyword_class(
+        "class",
+        vec![(Class, "class"), (EOF, "")])]
+    #[case::keyword_else(
+        "else",
+        vec![(Else, "else"), (EOF, "")])]
+    #[case::keyword_false(
+        "false",
+        vec![(False, "false"), (EOF, "")])]
+    #[case::keyword_for(
+        "for",
+        vec![(For, "for"), (EOF, "")])]
+    #[case::keyword_fun(
+        "fun",
+        vec![(Fun, "fun"), (EOF, "")])]
+    #[case::keyword_if(
+        "if",
+        vec![(If, "if"), (EOF, "")])]
+    #[case::keyword_nil(
+        "nil",
+        vec![(Nil, "nil"), (EOF, "")])]
+    #[case::keyword_or(
+        "or",
+        vec![(Or, "or"), (EOF, "")])]
+    #[case::keyword_print(
+        "print",
+        vec![(Print, "print"), (EOF, "")])]
+    #[case::keyword_return(
+        "return",
+        vec![(Return, "return"), (EOF, "")])]
+    #[case::keyword_super(
+        "super",
+        vec![(Super, "super"), (EOF, "")])]
+    #[case::keyword_this(
+        "this",
+        vec![(This, "this"), (EOF, "")])]
+    #[case::keyword_true(
+        "true",
+        vec![(True, "true"), (EOF, "")])]
+    #[case::keyword_var(
+        "var",
+        vec![(Var, "var"), (EOF, "")])]
+    #[case::keyword_while(
+        "while",
+        vec![(While, "while"), (EOF, "")])]
+    fn test_scan_tokens_keyword(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
         let tokens = Scanner::scan_tokens(input);
 
         assert_eq!(tokens.len(), expected.len());

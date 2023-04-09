@@ -11,8 +11,8 @@ Has both an interactive prompt, and a file input mode.
 
 ### Requirements
 
-- Rust 2021 Edition (1.56.0+)
-- Cargo (1.56.0+)
+- Rust 2021 Edition (1.60.0+)
+- Cargo (1.60.0+)
 
 ### Building
 
