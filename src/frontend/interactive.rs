@@ -23,13 +23,7 @@ pub fn run_interactive() -> Result<(), LoxScriptError> {
 
     loop {
         match stdin_channel.try_recv() {
-            Ok(line) => {
-                if let Err(lox_error) = run(&line) {
-                    println!("{}", lox_error);
-                }
-
-                print_prompt();
-            }
+            Ok(line) => process_line(line, has_quit.clone()),
             Err(TryRecvError::Empty) => {
                 if has_quit.load(Ordering::Relaxed) {
                     println!();
@@ -50,6 +44,7 @@ fn spawn_stdin_channel() -> Receiver<String> {
     thread::spawn(move || loop {
         let mut buffer = String::new();
         io::stdin().read_line(&mut buffer).unwrap();
+
         tx.send(buffer).unwrap();
     });
     rx
@@ -58,4 +53,17 @@ fn spawn_stdin_channel() -> Receiver<String> {
 fn print_prompt() {
     print!("lox > ");
     io::stdout().flush().unwrap();
+}
+
+fn process_line(line: String, handle_quit: Arc<AtomicBool>) {
+    if line.trim() == "exit" {
+        handle_quit.store(true, Ordering::Relaxed);
+        return;
+    }
+
+    if let Err(lox_error) = run(&line) {
+        println!("{}", lox_error);
+    }
+
+    print_prompt();
 }
