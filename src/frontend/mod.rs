@@ -1,6 +1,7 @@
 mod error_report;
 mod interactive;
 mod lex;
+mod parse;
 mod script_error;
 
 use std::fs;
