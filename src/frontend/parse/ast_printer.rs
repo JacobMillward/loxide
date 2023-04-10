@@ -6,21 +6,21 @@ use super::expression::*;
 pub fn print(expr: &Expression) -> String {
     match expr {
         Expression::Binary(expr) => {
-            parenthesize(&expr.operator.lexeme, vec![&expr.left, &expr.right])
+            parenthesise(&expr.operator.lexeme, vec![&expr.left, &expr.right])
         }
 
-        Expression::Grouping(expr) => parenthesize("group", vec![&expr.expression]),
+        Expression::Grouping(expr) => parenthesise("group", vec![&expr.expression]),
         Expression::Literal(expr) => match expr.value.as_ref() {
             Some(TokenLiteral::Identifier(id)) => id.clone(),
             Some(TokenLiteral::String(string)) => string.clone(),
             Some(TokenLiteral::Number(number)) => number.to_string(),
             None => "nil".to_string(),
         },
-        Expression::Unary(expr) => parenthesize(&expr.operator.lexeme, vec![&expr.right]),
+        Expression::Unary(expr) => parenthesise(&expr.operator.lexeme, vec![&expr.right]),
     }
 }
 
-fn parenthesize(name: &str, exprs: Vec<&Expression>) -> String {
+fn parenthesise(name: &str, exprs: Vec<&Expression>) -> String {
     let mut result = String::new();
     result.push('(');
     result.push_str(name);
