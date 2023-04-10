@@ -1,22 +1,25 @@
-use crate::frontend::lex::token::TokenLiteral;
+use crate::frontend::lex::token::Literal;
 
 use super::expression::*;
 
 #[allow(dead_code)]
 pub fn print(expr: &Expression) -> String {
     match expr {
-        Expression::Binary(expr) => {
-            parenthesise(&expr.operator.lexeme, vec![&expr.left, &expr.right])
-        }
+        Expression::Binary {
+            left,
+            operator,
+            right,
+        } => parenthesise(&operator.lexeme, vec![left, right]),
 
-        Expression::Grouping(expr) => parenthesise("group", vec![&expr.expression]),
-        Expression::Literal(expr) => match expr.value.as_ref() {
-            Some(TokenLiteral::Identifier(id)) => id.clone(),
-            Some(TokenLiteral::String(string)) => string.clone(),
-            Some(TokenLiteral::Number(number)) => number.to_string(),
+        Expression::Grouping(expr) => parenthesise("group", vec![expr]),
+        Expression::Literal(expr) => match expr.as_ref() {
+            Some(Literal::Identifier(id)) => id.clone(),
+            Some(Literal::String(string)) => string.clone(),
+            Some(Literal::Number(number)) => number.to_string(),
+            Some(Literal::Boolean(boolean)) => boolean.to_string(),
             None => "nil".to_string(),
         },
-        Expression::Unary(expr) => parenthesise(&expr.operator.lexeme, vec![&expr.right]),
+        Expression::Unary { operator, right } => parenthesise(&operator.lexeme, vec![right]),
     }
 }
 
@@ -34,37 +37,33 @@ fn parenthesise(name: &str, exprs: Vec<&Expression>) -> String {
 
 #[cfg(test)]
 mod test {
-    use crate::frontend::lex::token::{Token, TokenLiteral, TokenType};
+    use crate::frontend::lex::token::{Literal, Token, TokenType};
 
     use super::*;
 
     #[test]
     fn test_astprinter_print() {
         // Expression for -123 * (45.67)
-        let expr = Expression::Binary(Binary {
-            left: Box::new(Expression::Unary(Unary {
+        let expr = Expression::Binary {
+            left: Box::new(Expression::Unary {
                 operator: Token {
                     token_type: TokenType::Minus,
                     lexeme: "-".to_string(),
                     literal: None,
                     line_number: 1,
                 },
-                right: Box::new(Expression::Literal(Literal {
-                    value: Some(TokenLiteral::Number(123.0)),
-                })),
-            })),
+                right: Box::new(Expression::Literal(Some(Literal::Number(123.0)))),
+            }),
             operator: Token {
                 token_type: TokenType::Star,
                 lexeme: "*".to_string(),
                 literal: None,
                 line_number: 1,
             },
-            right: Box::new(Expression::Grouping(Grouping {
-                expression: Box::new(Expression::Literal(Literal {
-                    value: Some(TokenLiteral::Number(45.67)),
-                })),
-            })),
-        });
+            right: Box::new(Expression::Grouping(Box::new(Expression::Literal(Some(
+                Literal::Number(45.67),
+            ))))),
+        };
         let result = print(&expr);
 
         assert_eq!(result, "(* (- 123) (group 45.67))");

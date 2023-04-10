@@ -7,26 +7,22 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::frontend::lex::token::TokenType;
 use crate::frontend::LoxErrorReport;
 
+use super::token::Literal;
 use super::token::Token;
-use super::token::TokenLiteral;
 use super::token::TokenType::*;
 use super::token::KEYWORDS;
 
-#[derive(Clone, Debug)]
-pub enum PossibleToken {
-    Ok(Token),
-    Err(LoxErrorReport),
-}
+pub type TokenResult = Result<Token, LoxErrorReport>;
 
 pub struct Scanner {
     line_number: usize,
     lexeme_start: usize,
     lexeme_current: usize,
-    tokens: Vec<PossibleToken>,
+    tokens: Vec<TokenResult>,
 }
 
 impl Scanner {
-    pub fn scan_tokens(source: &str) -> Vec<PossibleToken> {
+    pub fn scan_tokens(source: &str) -> Vec<TokenResult> {
         let mut scanner = Scanner {
             line_number: 0,
             lexeme_start: 0,
@@ -109,7 +105,7 @@ impl Scanner {
                 _ if is_alpha(g) => scanner.parse_identifier(&mut grapheme_iter, source),
 
                 // Invalid token
-                _ => scanner.tokens.push(PossibleToken::Err(LoxErrorReport::new(
+                _ => scanner.tokens.push(TokenResult::Err(LoxErrorReport::new(
                     scanner.line_number,
                     String::new(),
                     format!(
@@ -120,7 +116,7 @@ impl Scanner {
             }
         }
 
-        scanner.tokens.push(PossibleToken::Ok(Token::new(
+        scanner.tokens.push(TokenResult::Ok(Token::new(
             Eof,
             String::new(),
             None,
@@ -140,7 +136,7 @@ impl Scanner {
      * Adds a token to the list of tokens
      */
     fn add_token(&mut self, token_type: TokenType, src: &str) {
-        self.tokens.push(PossibleToken::Ok(Token::new(
+        self.tokens.push(TokenResult::Ok(Token::new(
             token_type,
             self.get_lexeme(src),
             None,
@@ -151,8 +147,8 @@ impl Scanner {
     /**
      * Adds a token with a literal to the list of tokens
      */
-    fn add_literal_token(&mut self, token_type: TokenType, literal: TokenLiteral, src: &str) {
-        self.tokens.push(PossibleToken::Ok(Token::new(
+    fn add_literal_token(&mut self, token_type: TokenType, literal: Literal, src: &str) {
+        self.tokens.push(TokenResult::Ok(Token::new(
             token_type,
             self.get_lexeme(src),
             Some(literal),
@@ -199,7 +195,7 @@ impl Scanner {
                 self.lexeme_start += 1;
                 self.lexeme_current -= 1;
 
-                self.add_literal_token(String, TokenLiteral::String(self.get_lexeme(src)), src);
+                self.add_literal_token(String, Literal::String(self.get_lexeme(src)), src);
 
                 // Reset the start and current
                 self.lexeme_current += 1;
@@ -209,7 +205,7 @@ impl Scanner {
             }
         }
 
-        self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
+        self.tokens.push(TokenResult::Err(LoxErrorReport::new(
             self.line_number,
             String::new(),
             format!(
@@ -245,7 +241,7 @@ impl Scanner {
         let parsed_number = self.get_lexeme(src).parse::<f64>();
 
         if parsed_number.is_err() {
-            self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
+            self.tokens.push(TokenResult::Err(LoxErrorReport::new(
                 self.line_number,
                 String::new(),
                 format!(
@@ -256,7 +252,7 @@ impl Scanner {
             return;
         }
 
-        self.add_literal_token(Number, TokenLiteral::Number(parsed_number.unwrap()), src);
+        self.add_literal_token(Number, Literal::Number(parsed_number.unwrap()), src);
     }
 
     fn parse_identifier(&mut self, grapheme_iter: &mut Peekable<GraphemeIndices>, src: &str) {
@@ -272,7 +268,7 @@ impl Scanner {
         let literal = self.get_lexeme(src);
 
         let token_type = KEYWORDS.get(&literal).unwrap_or(&Identifier).clone();
-        self.add_literal_token(token_type, TokenLiteral::Identifier(literal), src);
+        self.add_literal_token(token_type, Literal::Identifier(literal), src);
     }
 }
 
@@ -317,15 +313,6 @@ mod test {
     use rstest::rstest;
 
     use super::*;
-
-    impl PossibleToken {
-        pub fn unwrap(self) -> Token {
-            match self {
-                PossibleToken::Ok(token) => token,
-                PossibleToken::Err(err) => panic!("Error token: {}", err.message),
-            }
-        }
-    }
 
     #[test]
     fn test_is_digit() {
@@ -394,7 +381,7 @@ mod test {
 
         assert!(token.literal.is_some());
         let literal = token.literal.unwrap();
-        assert_eq!(literal, TokenLiteral::Identifier(expected[0].1.to_string()));
+        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
     }
 
     #[rstest]
@@ -458,7 +445,7 @@ mod test {
 
         assert!(token.literal.is_some());
         let literal = token.literal.unwrap();
-        assert_eq!(literal, TokenLiteral::Identifier(expected[0].1.to_string()));
+        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
     }
 
     #[rstest]
