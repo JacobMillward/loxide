@@ -49,7 +49,7 @@ pub enum TokenType {
     Var,
     While,
 
-    EOF,
+    Eof,
 }
 
 pub const KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
