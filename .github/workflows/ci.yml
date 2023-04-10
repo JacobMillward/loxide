@@ -7,30 +7,32 @@ on:
     branches:
       - main
   pull_request:
-    branches:
-      - main
 
 jobs:
-  test:
+  lint:
+    name: Lint
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
 
-      - name: Update local toolchain
-        run: rustup toolchain install stable --profile minimal
-
-      - uses: Swatinem/rust-cache@v2
-
-      - name: Toolchain info
-        run: |
-          cargo --version --verbose
-          rustc --version
+      - name: Lint
+        run: cargo clippy --all --all-targets -- -D warnings
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Test
-        run: |
-          cargo check
-          cargo test --all
+        run: cargo test --all
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
 
       - name: Build
-        run: |
-          cargo build --release
+        run: cargo build --all
