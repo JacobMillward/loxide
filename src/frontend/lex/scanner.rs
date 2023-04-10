@@ -72,7 +72,7 @@ impl Scanner {
                 // Comments or division
                 "/" => {
                     if scanner.next_matches(&mut grapheme_iter, "/") {
-                        while let Some(_) = grapheme_iter.next_if(|(_, g)| *g != "\n") {}
+                        while grapheme_iter.next_if(|(_, g)| *g != "\n").is_some() {}
                         scanner.line_number += 1;
                     } else if scanner.next_matches(&mut grapheme_iter, "*") {
                         // Multiline comment
@@ -111,7 +111,7 @@ impl Scanner {
                 // Invalid token
                 _ => scanner.tokens.push(PossibleToken::Err(LoxErrorReport::new(
                     scanner.line_number,
-                    format!(""),
+                    String::new(),
                     format!(
                         "Invalid token at line {} pos {}: {}",
                         scanner.line_number, grapheme_idx, g
@@ -121,8 +121,8 @@ impl Scanner {
         }
 
         scanner.tokens.push(PossibleToken::Ok(Token::new(
-            EOF,
-            "".to_string(),
+            Eof,
+            String::new(),
             None,
             scanner.line_number,
         )));
@@ -186,7 +186,7 @@ impl Scanner {
      * If the string is unterminated, an error is added to the list of tokens
      */
     fn parse_string(&mut self, grapheme_iter: &mut Peekable<GraphemeIndices>, src: &str) {
-        while let Some((next_idx, g)) = grapheme_iter.next() {
+        for (next_idx, g) in grapheme_iter.by_ref() {
             self.lexeme_current = next_idx;
 
             if g == "\n" {
@@ -211,7 +211,7 @@ impl Scanner {
 
         self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
             self.line_number,
-            format!(""),
+            String::new(),
             format!(
                 "Unterminated string at line {} pos {}",
                 self.line_number, self.lexeme_start
@@ -247,7 +247,7 @@ impl Scanner {
         if parsed_number.is_err() {
             self.tokens.push(PossibleToken::Err(LoxErrorReport::new(
                 self.line_number,
-                format!(""),
+                String::new(),
                 format!(
                     "Invalid number at line {} pos {}",
                     self.line_number, self.lexeme_start
@@ -283,7 +283,7 @@ fn is_digit(g: &str) -> bool {
     let char = g.chars().next();
 
     match char {
-        Some(c) => c.is_digit(10),
+        Some(c) => c.is_ascii_digit(),
         None => false,
     }
 }
@@ -341,16 +341,16 @@ mod test {
     #[rstest]
     #[case::simple_digits(
         "1 < 3 + 4",
-        vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (EOF, "")])]
+        vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (Eof, "")])]
     #[case::digits_with_comments_and_string(
         "1 < 3 + 4 // This is a comment\n\"Hello, world!\" 2 // This is another comment",
-        vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (String, "Hello, world!"), (Number, "2"), (EOF, "")])]
+        vec![(Number, "1"), (Less, "<"), (Number, "3"), (Plus, "+"), (Number, "4"), (String, "Hello, world!"), (Number, "2"), (Eof, "")])]
     #[case::decimal_number(
         "1.234",
-        vec![(Number, "1.234"), (EOF, "")])]
+        vec![(Number, "1.234"), (Eof, "")])]
     #[case::complex_decimal_number(
         "1.234.567.123",
-        vec![(Number, "1.234"), (Dot, "."), (Number, "567.123"), (EOF, "")])]
+        vec![(Number, "1.234"), (Dot, "."), (Number, "567.123"), (Eof, "")])]
     fn test_scan_tokens(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
         let tokens = Scanner::scan_tokens(input);
 
@@ -366,22 +366,22 @@ mod test {
     #[rstest]
     #[case::identifier(
         "a",
-        vec![(Identifier, "a"), (EOF, "")])]
+        vec![(Identifier, "a"), (Eof, "")])]
     #[case::identifier_with_number(
         "a1",
-        vec![(Identifier, "a1"), (EOF, "")])]
+        vec![(Identifier, "a1"), (Eof, "")])]
     #[case::identifier_with_number_and_underscore(
         "a1_",
-        vec![(Identifier, "a1_"), (EOF, "")])]
+        vec![(Identifier, "a1_"), (Eof, "")])]
     #[case::identifier_with_number_and_underscore_and_alpha(
         "a1_b",
-        vec![(Identifier, "a1_b"), (EOF, "")])]
+        vec![(Identifier, "a1_b"), (Eof, "")])]
     #[case::identifier_with_number_and_underscore_and_alpha_and_comment(
         "a1_b // This is a comment",
-        vec![(Identifier, "a1_b"), (EOF, "")])]
+        vec![(Identifier, "a1_b"), (Eof, "")])]
     #[case::identifer_starting_with_underscore(
         "_a",
-        vec![(Identifier, "_a"), (EOF, "")])]
+        vec![(Identifier, "_a"), (Eof, "")])]
     fn test_scan_tokens_identifier(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
         let tokens = Scanner::scan_tokens(input);
 
@@ -400,52 +400,52 @@ mod test {
     #[rstest]
     #[case::keyword_and(
         "and",
-        vec![(And, "and"), (EOF, "")])]
+        vec![(And, "and"), (Eof, "")])]
     #[case::keyword_class(
         "class",
-        vec![(Class, "class"), (EOF, "")])]
+        vec![(Class, "class"), (Eof, "")])]
     #[case::keyword_else(
         "else",
-        vec![(Else, "else"), (EOF, "")])]
+        vec![(Else, "else"), (Eof, "")])]
     #[case::keyword_false(
         "false",
-        vec![(False, "false"), (EOF, "")])]
+        vec![(False, "false"), (Eof, "")])]
     #[case::keyword_for(
         "for",
-        vec![(For, "for"), (EOF, "")])]
+        vec![(For, "for"), (Eof, "")])]
     #[case::keyword_fun(
         "fun",
-        vec![(Fun, "fun"), (EOF, "")])]
+        vec![(Fun, "fun"), (Eof, "")])]
     #[case::keyword_if(
         "if",
-        vec![(If, "if"), (EOF, "")])]
+        vec![(If, "if"), (Eof, "")])]
     #[case::keyword_nil(
         "nil",
-        vec![(Nil, "nil"), (EOF, "")])]
+        vec![(Nil, "nil"), (Eof, "")])]
     #[case::keyword_or(
         "or",
-        vec![(Or, "or"), (EOF, "")])]
+        vec![(Or, "or"), (Eof, "")])]
     #[case::keyword_print(
         "print",
-        vec![(Print, "print"), (EOF, "")])]
+        vec![(Print, "print"), (Eof, "")])]
     #[case::keyword_return(
         "return",
-        vec![(Return, "return"), (EOF, "")])]
+        vec![(Return, "return"), (Eof, "")])]
     #[case::keyword_super(
         "super",
-        vec![(Super, "super"), (EOF, "")])]
+        vec![(Super, "super"), (Eof, "")])]
     #[case::keyword_this(
         "this",
-        vec![(This, "this"), (EOF, "")])]
+        vec![(This, "this"), (Eof, "")])]
     #[case::keyword_true(
         "true",
-        vec![(True, "true"), (EOF, "")])]
+        vec![(True, "true"), (Eof, "")])]
     #[case::keyword_var(
         "var",
-        vec![(Var, "var"), (EOF, "")])]
+        vec![(Var, "var"), (Eof, "")])]
     #[case::keyword_while(
         "while",
-        vec![(While, "while"), (EOF, "")])]
+        vec![(While, "while"), (Eof, "")])]
     fn test_scan_tokens_keyword(#[case] input: &str, #[case] expected: Vec<(TokenType, &str)>) {
         let tokens = Scanner::scan_tokens(input);
 
@@ -476,6 +476,6 @@ mod test {
         let token = tokens[0].clone().unwrap();
 
         // Assert that the token is an EOF token
-        assert_eq!(token.token_type, EOF);
+        assert_eq!(token.token_type, Eof);
     }
 }
