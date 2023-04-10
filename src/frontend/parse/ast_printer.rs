@@ -10,7 +10,11 @@ pub fn print(expr: &Expression) -> String {
             operator,
             right,
         } => parenthesise(&operator.lexeme, vec![left, right]),
-
+        Expression::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => parenthesise("ternary", vec![condition, then_branch, else_branch]),
         Expression::Grouping(expr) => parenthesise("group", vec![expr]),
         Expression::Literal(expr) => match expr.as_ref() {
             Some(Literal::Identifier(id)) => id.clone(),

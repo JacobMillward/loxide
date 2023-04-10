@@ -58,6 +58,8 @@ impl Scanner {
                 "+" => scanner.add_token(Plus, source),
                 ";" => scanner.add_token(Semicolon, source),
                 "*" => scanner.add_token(Star, source),
+                "?" => scanner.add_token(QuestionMark, source),
+                ":" => scanner.add_token(Colon, source),
 
                 // One or two character tokens
                 "!" => add_if_next_matches("=", BangEqual, Bang),

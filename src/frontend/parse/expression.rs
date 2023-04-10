@@ -7,6 +7,11 @@ pub enum Expression {
         operator: Token,
         right: Box<Expression>,
     },
+    Ternary {
+        condition: Box<Expression>,
+        then_branch: Box<Expression>,
+        else_branch: Box<Expression>,
+    },
     Grouping(Box<Expression>),
     Literal(Option<Literal>),
     Unary {

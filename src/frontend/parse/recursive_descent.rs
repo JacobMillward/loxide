@@ -13,6 +13,7 @@ type ParseResult<T> = Result<T, ParseError>;
  * Implements a recursive descent parser for the formal grammar:
  * expression   => comma ;
  * comma        => equality ( "," equality )* ;
+ * ternary      => equality ( "?" expression ":" expression )? ;
  * equality     => comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison   => term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
  * term         => factor ( ( "-" | "+" ) factor )* ;
@@ -59,7 +60,24 @@ impl Parser {
     }
 
     fn comma(&mut self) -> ParseResult<Expression> {
-        self.create_left_associative_binary_expression(vec![TokenType::Comma], Self::equality)
+        self.create_left_associative_binary_expression(vec![TokenType::Comma], Self::ternary)
+    }
+
+    fn ternary(&mut self) -> ParseResult<Expression> {
+        let mut expr = self.equality()?;
+
+        if self.next_matches(&vec![TokenType::QuestionMark]) {
+            let then_branch = self.expression()?;
+            self.consume(&TokenType::Colon, "Expected ':' after then branch")?;
+            let else_branch = self.expression()?;
+            expr = Expression::Ternary {
+                condition: Box::new(expr),
+                then_branch: Box::new(then_branch),
+                else_branch: Box::new(else_branch),
+            };
+        }
+
+        Ok(expr)
     }
 
     fn equality(&mut self) -> ParseResult<Expression> {
