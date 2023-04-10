@@ -73,7 +73,7 @@ pub const KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
 
 #[allow(dead_code)]
 #[derive(PartialEq, Debug, Clone)]
-pub enum Literal {
+pub enum TokenLiteral {
     Identifier(String),
     String(String),
     Number(f64),
@@ -83,7 +83,7 @@ pub enum Literal {
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<Literal>,
+    pub literal: Option<TokenLiteral>,
     pub line_number: usize,
 }
 
@@ -91,7 +91,7 @@ impl Token {
     pub fn new(
         token_type: TokenType,
         lexeme: String,
-        literal: Option<Literal>,
+        literal: Option<TokenLiteral>,
         line_number: usize,
     ) -> Token {
         Token {

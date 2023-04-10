@@ -7,8 +7,8 @@ use unicode_segmentation::UnicodeSegmentation;
 use crate::frontend::lex::token::TokenType;
 use crate::frontend::LoxErrorReport;
 
-use super::token::Literal;
 use super::token::Token;
+use super::token::TokenLiteral;
 use super::token::TokenType::*;
 use super::token::KEYWORDS;
 
@@ -151,7 +151,7 @@ impl Scanner {
     /**
      * Adds a token with a literal to the list of tokens
      */
-    fn add_literal_token(&mut self, token_type: TokenType, literal: Literal, src: &str) {
+    fn add_literal_token(&mut self, token_type: TokenType, literal: TokenLiteral, src: &str) {
         self.tokens.push(PossibleToken::Ok(Token::new(
             token_type,
             self.get_lexeme(src),
@@ -199,7 +199,7 @@ impl Scanner {
                 self.lexeme_start += 1;
                 self.lexeme_current -= 1;
 
-                self.add_literal_token(String, Literal::String(self.get_lexeme(src)), src);
+                self.add_literal_token(String, TokenLiteral::String(self.get_lexeme(src)), src);
 
                 // Reset the start and current
                 self.lexeme_current += 1;
@@ -256,7 +256,7 @@ impl Scanner {
             return;
         }
 
-        self.add_literal_token(Number, Literal::Number(parsed_number.unwrap()), src);
+        self.add_literal_token(Number, TokenLiteral::Number(parsed_number.unwrap()), src);
     }
 
     fn parse_identifier(&mut self, grapheme_iter: &mut Peekable<GraphemeIndices>, src: &str) {
@@ -272,7 +272,7 @@ impl Scanner {
         let literal = self.get_lexeme(src);
 
         let token_type = KEYWORDS.get(&literal).unwrap_or(&Identifier).clone();
-        self.add_literal_token(token_type, Literal::Identifier(literal), src);
+        self.add_literal_token(token_type, TokenLiteral::Identifier(literal), src);
     }
 }
 
@@ -394,7 +394,7 @@ mod test {
 
         assert!(token.literal.is_some());
         let literal = token.literal.unwrap();
-        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
+        assert_eq!(literal, TokenLiteral::Identifier(expected[0].1.to_string()));
     }
 
     #[rstest]
@@ -458,7 +458,7 @@ mod test {
 
         assert!(token.literal.is_some());
         let literal = token.literal.unwrap();
-        assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
+        assert_eq!(literal, TokenLiteral::Identifier(expected[0].1.to_string()));
     }
 
     #[rstest]
