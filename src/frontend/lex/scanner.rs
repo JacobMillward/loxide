@@ -74,6 +74,20 @@ impl Scanner {
                     if scanner.next_matches(&mut grapheme_iter, "/") {
                         while let Some(_) = grapheme_iter.next_if(|(_, g)| *g != "\n") {}
                         scanner.line_number += 1;
+                    } else if scanner.next_matches(&mut grapheme_iter, "*") {
+                        // Multiline comment
+                        // We keep track of depth to allow nested comments
+                        let mut depth = 1;
+                        while let Some((_, g)) = grapheme_iter.next() {
+                            if g == "*" && scanner.next_matches(&mut grapheme_iter, "/") {
+                                depth -= 1;
+                                if depth == 0 {
+                                    break;
+                                }
+                            } else if g == "/" && scanner.next_matches(&mut grapheme_iter, "*") {
+                                depth += 1;
+                            }
+                        }
                     } else {
                         scanner.add_token(Slash, source)
                     }
@@ -445,5 +459,23 @@ mod test {
         assert!(token.literal.is_some());
         let literal = token.literal.unwrap();
         assert_eq!(literal, Literal::Identifier(expected[0].1.to_string()));
+    }
+
+    #[rstest]
+    #[case::single_line_comment("// This is a comment\n// This is another comment")]
+    #[case::block_comment("/* This is a block comment */")]
+    #[case::block_comment_with_newline(
+        "/* This is a block comment
+            With a newline */"
+    )]
+    #[case::nested_block_comment("/* This is a block comment /* With a nested block comment */ */")]
+    fn test_scan_tokens_comments(#[case] input: &str) {
+        let tokens = Scanner::scan_tokens(input);
+
+        assert_eq!(tokens.len(), 1);
+        let token = tokens[0].clone().unwrap();
+
+        // Assert that the token is an EOF token
+        assert_eq!(token.token_type, EOF);
     }
 }
