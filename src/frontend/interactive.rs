@@ -9,14 +9,17 @@ use std::{
     thread,
 };
 
-use super::{run, LoxScriptError};
+use super::{run, script_error::LoxScriptError};
 
 pub fn run_interactive() -> Result<(), LoxScriptError> {
     let has_quit = Arc::new(AtomicBool::new(false));
 
     let handle_quit = has_quit.clone();
-    ctrlc::set_handler(move || handle_quit.store(true, Ordering::Relaxed))
-        .expect("Error setting Ctrl-C handler");
+    ctrlc::set_handler(move || {
+        println!();
+        handle_quit.store(true, Ordering::Relaxed)
+    })
+    .expect("Error setting Ctrl-C handler");
 
     let stdin_channel = spawn_stdin_channel();
     print_prompt();
@@ -26,7 +29,6 @@ pub fn run_interactive() -> Result<(), LoxScriptError> {
             Ok(line) => process_line(line, has_quit.clone()),
             Err(TryRecvError::Empty) => {
                 if has_quit.load(Ordering::Relaxed) {
-                    println!();
                     println!("Exiting...");
                     break;
                 }

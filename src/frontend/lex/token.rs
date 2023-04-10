@@ -1,7 +1,6 @@
 use phf::phf_map;
 
-#[derive(PartialEq, Eq, Debug, Clone)]
-#[allow(dead_code)]
+#[derive(PartialEq, Eq, PartialOrd, Debug, Clone)]
 pub enum TokenType {
     // Single Character Tokens
     LeftParen,
@@ -71,19 +70,19 @@ pub const KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => TokenType::While,
 };
 
-#[allow(dead_code)]
-#[derive(PartialEq, Debug, Clone)]
-pub enum TokenLiteral {
+#[derive(PartialEq, Debug, Clone, PartialOrd)]
+pub enum Literal {
     Identifier(String),
     String(String),
     Number(f64),
+    Boolean(bool),
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Token {
     pub token_type: TokenType,
     pub lexeme: String,
-    pub literal: Option<TokenLiteral>,
+    pub literal: Option<Literal>,
     pub line_number: usize,
 }
 
@@ -91,7 +90,7 @@ impl Token {
     pub fn new(
         token_type: TokenType,
         lexeme: String,
-        literal: Option<TokenLiteral>,
+        literal: Option<Literal>,
         line_number: usize,
     ) -> Token {
         Token {

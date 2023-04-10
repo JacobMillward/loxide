@@ -4,8 +4,10 @@ An implementation of Lox from [Crafting Interpreters](http://craftinginterpreter
 
 ## Current Progress
 
-Begun implementation of token scanning; given lox source will print out the tokens.
-Has both an interactive prompt, and a file input mode.
+Token Scanning: ✅
+Parsing: _Basic recurisve descent parser implemented for expressions. Currently stops on parsing error_
+
+Currently the compiler will tokenise the source, and then parse a single top-level expression. If it encounters an error it will print it to the screen.
 
 ## Building
 
