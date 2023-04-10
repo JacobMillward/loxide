@@ -2,54 +2,34 @@ use crate::frontend::lex::token::TokenLiteral;
 
 use super::expression::*;
 
-pub struct AstPrinter {}
-
-impl AstPrinter {
-    pub fn new() -> AstPrinter {
-        AstPrinter {}
-    }
-
-    pub fn print(&mut self, expr: &Expression) -> String {
-        expr.accept(self)
-    }
-
-    fn parenthesize(&mut self, name: &str, exprs: Vec<&Expression>) -> String {
-        let mut result = String::new();
-        result.push('(');
-        result.push_str(name);
-        for expr in exprs {
-            result.push(' ');
-            result.push_str(&expr.accept(self));
+#[allow(dead_code)]
+pub fn print(expr: &Expression) -> String {
+    match expr {
+        Expression::Binary(expr) => {
+            parenthesize(&expr.operator.lexeme, vec![&expr.left, &expr.right])
         }
-        result.push(')');
-        result
+
+        Expression::Grouping(expr) => parenthesize("group", vec![&expr.expression]),
+        Expression::Literal(expr) => match expr.value.as_ref() {
+            Some(TokenLiteral::Identifier(id)) => id.clone(),
+            Some(TokenLiteral::String(string)) => string.clone(),
+            Some(TokenLiteral::Number(number)) => number.to_string(),
+            None => "nil".to_string(),
+        },
+        Expression::Unary(expr) => parenthesize(&expr.operator.lexeme, vec![&expr.right]),
     }
 }
 
-impl ExpressionVisitor<String> for AstPrinter {
-    fn visit_binary_expr(&mut self, expr: &Binary) -> String {
-        self.parenthesize(&expr.operator.lexeme, vec![&expr.left, &expr.right])
+fn parenthesize(name: &str, exprs: Vec<&Expression>) -> String {
+    let mut result = String::new();
+    result.push('(');
+    result.push_str(name);
+    for expr in exprs {
+        result.push(' ');
+        result.push_str(&print(expr));
     }
-
-    fn visit_grouping_expr(&mut self, expr: &Grouping) -> String {
-        self.parenthesize("group", vec![&expr.expression])
-    }
-
-    fn visit_literal_expr(&mut self, expr: &Literal) -> String {
-        if expr.value.is_none() {
-            return "nil".to_string();
-        }
-
-        match expr.value.as_ref().unwrap() {
-            TokenLiteral::Identifier(identifier) => identifier.to_string(),
-            TokenLiteral::Number(number) => number.to_string(),
-            TokenLiteral::String(string) => string.to_string(),
-        }
-    }
-
-    fn visit_unary_expr(&mut self, expr: &Unary) -> String {
-        self.parenthesize(&expr.operator.lexeme, vec![&expr.right])
-    }
+    result.push(')');
+    result
 }
 
 #[cfg(test)]
@@ -60,8 +40,6 @@ mod test {
 
     #[test]
     fn test_astprinter_print() {
-        let mut ast_printer = AstPrinter::new();
-
         // Expression for -123 * (45.67)
         let expr = Expression::Binary(Binary {
             left: Box::new(Expression::Unary(Unary {
@@ -87,7 +65,7 @@ mod test {
                 })),
             })),
         });
-        let result = ast_printer.print(&expr);
+        let result = print(&expr);
 
         assert_eq!(result, "(* (- 123) (group 45.67))");
     }
