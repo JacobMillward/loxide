@@ -7,6 +7,6 @@ edition = "2021"
 
 [dependencies]
 ctrlc = { version = "3.4.0", features = ["termination"] }
-phf = { version = "0.11.1", features = ["macros"] }
+phf = { version = "0.11.2", features = ["macros"] }
 rstest = {version= "0.17.0",  default-features = false }
 unicode-segmentation = "1.10.1"
