@@ -72,7 +72,7 @@ pub const KEYWORDS: phf::Map<&'static str, TokenType> = phf_map! {
     "while" => TokenType::While,
 };
 
-#[derive(PartialEq, Debug, Clone, PartialOrd)]
+#[derive(Debug, Clone, PartialOrd)]
 pub enum Literal {
     Identifier(String),
     String(String),
