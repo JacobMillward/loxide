@@ -12,7 +12,7 @@ type ParseResult<T> = Result<T, ParseError>;
 /**
  * Implements a recursive descent parser for the formal grammar:
  * expression   => comma ;
- * comma        => equality ( "," equality )* ;
+ * comma        => ternary ( "," ternary )* ;
  * ternary      => equality ( "?" expression ":" expression )? ;
  * equality     => comparison ( ( "!=" | "==" ) comparison )* ;
  * comparison   => term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
