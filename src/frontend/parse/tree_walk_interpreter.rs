@@ -74,11 +74,27 @@ fn evaluate_binary(binary: &Expression) -> Result<Option<Literal>, RuntimeError>
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
                         Ok(Some(Literal::Number(l + r)))
                     }
-                    (Some(Literal::String(l)), Some(Literal::String(r))) => {
-                        Ok(Some(Literal::String(format!("{}{}", l, r))))
-                    }
+
+                    (Some(Literal::String(l)), r) => Ok(Some(Literal::String(format!(
+                        "{}{}",
+                        l,
+                        match r {
+                            Some(r) => r.to_string(),
+                            None => "nil".to_string(),
+                        }
+                    )))),
+
+                    (l, Some(Literal::String(r))) => Ok(Some(Literal::String(format!(
+                        "{}{}",
+                        match l {
+                            Some(l) => l.to_string(),
+                            None => "nil".to_string(),
+                        },
+                        r
+                    )))),
+
                     _ => RuntimeError::with_token(
-                        "operands must be two numbers or two strings.".to_string(),
+                        "operands must be numbers or strings.".to_string(),
                         operator.clone(),
                     ),
                 },
@@ -260,6 +276,10 @@ mod test {
     #[rstest]
     #[case::plus_number(Literal::Number(1.0), Literal::Number(2.0), Literal::Number(3.0))]
     #[case::plus_string(Literal::String("hello".to_string()), Literal::String("world".to_string()), Literal::String("helloworld".to_string()))]
+    #[case::plus_string_number(Literal::String("hello".to_string()), Literal::Number(1.0), Literal::String("hello1".to_string()))]
+    #[case::plus_number_string(Literal::Number(1.0), Literal::String("hello".to_string()), Literal::String("1hello".to_string()))]
+    #[case::plus_string_empty(Literal::String("hello".to_string()), Literal::String("".to_string()), Literal::String("hello".to_string()))]
+    #[case::plus_string_boolean(Literal::String("hello".to_string()), Literal::Boolean(true), Literal::String("hellotrue".to_string()))]
     fn test_binary_plus(#[case] left: Literal, #[case] right: Literal, #[case] expected: Literal) {
         let expr = Expression::Binary {
             left: Box::new(Expression::Literal(Some(left))),
