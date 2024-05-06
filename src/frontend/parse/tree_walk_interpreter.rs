@@ -101,28 +101,28 @@ fn evaluate_binary(binary: &Expression) -> Result<Option<Literal>, RuntimeError>
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
                         Ok(Some(Literal::Boolean(l > r)))
                     }
-                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
+                    _ => Ok(Some(Literal::Boolean(false))),
                 },
 
                 TokenType::GreaterEqual => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
                         Ok(Some(Literal::Boolean(l >= r)))
                     }
-                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
+                    _ => Ok(Some(Literal::Boolean(false))),
                 },
 
                 TokenType::Less => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
                         Ok(Some(Literal::Boolean(l < r)))
                     }
-                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
+                    _ => Ok(Some(Literal::Boolean(false))),
                 },
 
                 TokenType::LessEqual => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
                         Ok(Some(Literal::Boolean(l <= r)))
                     }
-                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
+                    _ => Ok(Some(Literal::Boolean(false))),
                 },
 
                 TokenType::BangEqual => Ok(Some(Literal::Boolean(!evaluate_equal(&left, &right)))),
@@ -344,7 +344,6 @@ mod test {
         Literal::Number(2.0),
         Literal::Boolean(true)
     )]
-
     fn test_binary_comparison(
         #[case] operator: TokenType,
         #[case] left: Literal,
@@ -369,6 +368,64 @@ mod test {
         };
 
         assert_eq!(interpret(&expr), Ok(Some(expected)));
+    }
+
+    #[rstest]
+    #[case::greater_string(
+        TokenType::Greater,
+        Literal::String("hello".to_string()),
+        Literal::String("world".to_string())
+    )]
+    #[case::greater_boolean(TokenType::Greater, Literal::Boolean(true), Literal::Boolean(false))]
+    #[case::greater_equal_string(
+        TokenType::LessEqual,
+        Literal::String("hello".to_string()),
+        Literal::String("world".to_string())
+    )]
+    #[case::greater_equal_boolean(
+        TokenType::LessEqual,
+        Literal::Boolean(true),
+        Literal::Boolean(false)
+    )]
+    #[case::less_string(
+        TokenType::Less,
+        Literal::String("hello".to_string()),
+        Literal::String("world".to_string())
+    )]
+    #[case::less_boolean(TokenType::Less, Literal::Boolean(true), Literal::Boolean(false))]
+    #[case::less_equal_string(
+        TokenType::LessEqual,
+        Literal::String("hello".to_string()),
+        Literal::String("world".to_string())
+    )]
+    #[case::less_equal_boolean(
+        TokenType::LessEqual,
+        Literal::Boolean(true),
+        Literal::Boolean(false)
+    )]
+    fn test_binary_comparison_non_numbers(
+        #[case] operator: TokenType,
+        #[case] left: Literal,
+        #[case] right: Literal,
+    ) {
+        let expr = Expression::Binary {
+            left: Box::new(Expression::Literal(Some(left))),
+            operator: Token {
+                lexeme: match operator {
+                    TokenType::Greater => ">".to_string(),
+                    TokenType::GreaterEqual => ">=".to_string(),
+                    TokenType::Less => "<".to_string(),
+                    TokenType::LessEqual => "<=".to_string(),
+                    _ => panic!("Unexpected operator {:?}", operator),
+                },
+                token_type: operator,
+                literal: None,
+                line_number: 0,
+            },
+            right: Box::new(Expression::Literal(Some(right))),
+        };
+
+        assert_eq!(interpret(&expr), Ok(Some(Literal::Boolean(false))));
     }
 
     #[rstest]
