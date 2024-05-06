@@ -4,10 +4,10 @@ An implementation of Lox from [Crafting Interpreters](http://craftinginterpreter
 
 ## Current Progress
 
-Token Scanning: ✅
-Parsing: _Basic recurisve descent parser implemented for expressions. Currently stops on parsing error_
+Finished Chapter 7.
 
 Currently the compiler will tokenise the source, and then parse a single top-level expression. If it encounters an error it will print it to the screen.
+It then uses a tree-walk interpreter to evaluate the expression, and prints the result to the screen.
 
 ## Building
 
