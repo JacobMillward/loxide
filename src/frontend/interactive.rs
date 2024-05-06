@@ -9,9 +9,9 @@ use std::{
     thread,
 };
 
-use super::{run, script_error::LoxScriptError};
+use super::run;
 
-pub fn run_interactive() -> Result<(), LoxScriptError> {
+pub fn run_interactive() {
     let has_quit = Arc::new(AtomicBool::new(false));
 
     let handle_quit = has_quit.clone();
@@ -36,8 +36,6 @@ pub fn run_interactive() -> Result<(), LoxScriptError> {
             Err(TryRecvError::Disconnected) => panic!("Channel disconnected"),
         }
     }
-
-    Ok(())
 }
 
 fn spawn_stdin_channel() -> Receiver<String> {
@@ -63,9 +61,6 @@ fn process_line(line: String, handle_quit: Arc<AtomicBool>) {
         return;
     }
 
-    if let Err(lox_error) = run(&line) {
-        println!("{}", lox_error);
-    }
-
+    run(&line);
     print_prompt();
 }

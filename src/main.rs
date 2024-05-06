@@ -1,4 +1,4 @@
-use std::env;
+use std::{env, error::Error};
 
 use loxide::frontend::{run_file, run_interactive};
 
@@ -9,11 +9,11 @@ fn print_help() {
     );
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
 
     match args.len() {
-        1 => Ok(run_interactive()?),
+        1 => Ok(run_interactive()),
         2 => Ok(run_file(&args[1])?),
         _ => {
             print_help();

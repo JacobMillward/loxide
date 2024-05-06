@@ -5,14 +5,14 @@ use unicode_segmentation::GraphemeIndices;
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::frontend::lex::token::TokenType;
-use crate::frontend::LoxErrorReport;
 
 use super::token::Literal;
+use super::token::LoxTokenError;
 use super::token::Token;
 use super::token::TokenType::*;
 use super::token::KEYWORDS;
 
-pub type TokenResult = Result<Token, LoxErrorReport>;
+pub type TokenResult = Result<Token, LoxTokenError>;
 
 pub struct Scanner {
     line_number: usize,
@@ -107,7 +107,7 @@ impl Scanner {
                 _ if is_alpha(g) => scanner.parse_identifier(&mut grapheme_iter, source),
 
                 // Invalid token
-                _ => scanner.tokens.push(TokenResult::Err(LoxErrorReport::new(
+                _ => scanner.tokens.push(TokenResult::Err(LoxTokenError::new(
                     scanner.line_number,
                     String::new(),
                     format!(
@@ -207,7 +207,7 @@ impl Scanner {
             }
         }
 
-        self.tokens.push(TokenResult::Err(LoxErrorReport::new(
+        self.tokens.push(TokenResult::Err(LoxTokenError::new(
             self.line_number,
             String::new(),
             format!(
@@ -243,7 +243,7 @@ impl Scanner {
         let parsed_number = self.get_lexeme(src).parse::<f64>();
 
         if parsed_number.is_err() {
-            self.tokens.push(TokenResult::Err(LoxErrorReport::new(
+            self.tokens.push(TokenResult::Err(LoxTokenError::new(
                 self.line_number,
                 String::new(),
                 format!(

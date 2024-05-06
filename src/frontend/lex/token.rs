@@ -1,3 +1,5 @@
+use std::fmt::{self, Display};
+
 use phf::phf_map;
 
 #[derive(PartialEq, Eq, PartialOrd, Debug, Clone)]
@@ -80,6 +82,17 @@ pub enum Literal {
     Boolean(bool),
 }
 
+impl Display for Literal {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Literal::Identifier(s) => write!(f, "{}", s),
+            Literal::String(s) => write!(f, "{}", s),
+            Literal::Number(n) => write!(f, "{}", n),
+            Literal::Boolean(b) => write!(f, "{}", b),
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, PartialOrd)]
 pub struct Token {
     pub token_type: TokenType,
@@ -101,5 +114,32 @@ impl Token {
             literal,
             line_number,
         }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct LoxTokenError {
+    pub line_number: usize,
+    pub location: String,
+    pub message: String,
+}
+
+impl LoxTokenError {
+    pub fn new(line_number: usize, location: String, message: String) -> LoxTokenError {
+        LoxTokenError {
+            line_number,
+            location,
+            message,
+        }
+    }
+}
+
+impl fmt::Display for LoxTokenError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Line: {}, Loc: {}, Message: {}",
+            self.line_number, self.location, self.message,
+        )
     }
 }
