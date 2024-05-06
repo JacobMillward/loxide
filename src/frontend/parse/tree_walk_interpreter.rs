@@ -1,122 +1,157 @@
-use crate::frontend::lex::token::{Literal, TokenType};
+use crate::frontend::lex::token::{Literal, Token, TokenType};
 
 use super::expression::*;
 
-pub fn interpret(expr: &Expression) -> Option<Literal> {
+#[derive(Debug, PartialEq)]
+pub struct RuntimeError {
+    pub message: String,
+    pub token: Option<Token>,
+}
+
+impl RuntimeError {
+    pub fn new(message: String) -> Result<Option<Literal>, Self> {
+        Err(Self {
+            message,
+            token: None,
+        })
+    }
+
+    pub fn with_token(message: String, token: Token) -> Result<Option<Literal>, Self> {
+        Err(Self {
+            message,
+            token: Some(token),
+        })
+    }
+
+    pub fn operands_must_be_numbers(operator: Token) -> Result<Option<Literal>, Self> {
+        Self::with_token("Operands must be numbers.".to_string(), operator)
+    }
+}
+
+pub fn interpret(expr: &Expression) -> Result<Option<Literal>, RuntimeError> {
     evaluate_expression(expr)
 }
 
-fn evaluate_expression(expr: &Expression) -> Option<Literal> {
+fn evaluate_expression(expr: &Expression) -> Result<Option<Literal>, RuntimeError> {
     match expr {
         Expression::Binary { .. } => evaluate_binary(expr),
         Expression::Grouping(_) => evaluate_grouping(expr),
         Expression::Unary { .. } => evaluate_unary(expr),
-        Expression::Literal(literal) => literal.clone(),
-        _ => panic!("Unexpected expression {:?}", expr),
+        Expression::Literal(literal) => Ok(literal.clone()),
+        _ => RuntimeError::new(format!("Unexpected expression {:?}", expr)),
     }
 }
 
-fn evaluate_grouping(group: &Expression) -> Option<Literal> {
+fn evaluate_grouping(group: &Expression) -> Result<Option<Literal>, RuntimeError> {
     match group {
         Expression::Grouping(expr) => evaluate_expression(expr),
-        _ => panic!("Unexpected expression, expected Grouping {:?}", group),
+        _ => RuntimeError::new(format!(
+            "Unexpected expression, expected Grouping {:?}",
+            group
+        )),
     }
 }
 
-fn evaluate_binary(binary: &Expression) -> Option<Literal> {
+fn evaluate_binary(binary: &Expression) -> Result<Option<Literal>, RuntimeError> {
     match binary {
         Expression::Binary {
             left,
             operator,
             right,
         } => {
-            let left = evaluate_expression(left);
-            let right = evaluate_expression(right);
+            let left = evaluate_expression(left)?;
+            let right = evaluate_expression(right)?;
 
             match operator.token_type {
                 TokenType::Minus => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Number(l - r))
+                        Ok(Some(Literal::Number(l - r)))
                     }
-                    _ => panic!("Binary Minus - expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::Plus => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Number(l + r))
+                        Ok(Some(Literal::Number(l + r)))
                     }
                     (Some(Literal::String(l)), Some(Literal::String(r))) => {
-                        Some(Literal::String(format!("{}{}", l, r)))
+                        Ok(Some(Literal::String(format!("{}{}", l, r))))
                     }
-                    _ => panic!("Binary Plus + expects two numbers or two strings"),
+                    _ => RuntimeError::with_token(
+                        "operands must be two numbers or two strings.".to_string(),
+                        operator.clone(),
+                    ),
                 },
 
                 TokenType::Slash => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Number(l / r))
+                        Ok(Some(Literal::Number(l / r)))
                     }
-                    _ => panic!("Binary Slash / expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::Star => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Number(l * r))
+                        Ok(Some(Literal::Number(l * r)))
                     }
-                    _ => panic!("Binary Star * expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::Greater => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Boolean(l > r))
+                        Ok(Some(Literal::Boolean(l > r)))
                     }
-                    _ => panic!("Binary Greater > expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::GreaterEqual => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Boolean(l >= r))
+                        Ok(Some(Literal::Boolean(l >= r)))
                     }
-                    _ => panic!("Binary GreaterEqual >= expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::Less => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Boolean(l < r))
+                        Ok(Some(Literal::Boolean(l < r)))
                     }
-                    _ => panic!("Binary Less < expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
                 TokenType::LessEqual => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
-                        Some(Literal::Boolean(l <= r))
+                        Ok(Some(Literal::Boolean(l <= r)))
                     }
-                    _ => panic!("Binary LessEqual <= expects two numbers"),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
 
-                TokenType::BangEqual => Some(Literal::Boolean(!evaluate_equal(&left, &right))),
-                TokenType::EqualEqual => Some(Literal::Boolean(evaluate_equal(&left, &right))),
+                TokenType::BangEqual => Ok(Some(Literal::Boolean(!evaluate_equal(&left, &right)))),
+                TokenType::EqualEqual => Ok(Some(Literal::Boolean(evaluate_equal(&left, &right)))),
 
-                _ => panic!("Unknown binary operator {:?}", operator),
+                _ => RuntimeError::with_token("Unexpected operator".to_string(), operator.clone()),
             }
         }
-        _ => panic!("Unexpected expression, expected Binary {:?}", binary),
+        _ => RuntimeError::new("Unexpected expression, expected Binary".to_string()),
     }
 }
 
-fn evaluate_unary(unary: &Expression) -> Option<Literal> {
+fn evaluate_unary(unary: &Expression) -> Result<Option<Literal>, RuntimeError> {
     match unary {
         Expression::Unary { operator, right } => {
-            let right = evaluate_expression(right);
+            let right = evaluate_expression(right)?;
+
             match operator.token_type {
                 TokenType::Minus => match right {
-                    Some(Literal::Number(n)) => Some(Literal::Number(-n)),
-                    _ => panic!("Unary Minus - expects a number"),
+                    Some(Literal::Number(n)) => Ok(Some(Literal::Number(-n))),
+                    _ => RuntimeError::operands_must_be_numbers(operator.clone()),
                 },
-                TokenType::Bang => Some(Literal::Boolean(!is_truthy(&right))),
-                _ => panic!("Unknown unary operator {:?}", operator),
+
+                TokenType::Bang => Ok(Some(Literal::Boolean(!is_truthy(&right)))),
+
+                _ => RuntimeError::with_token("Unexpected operator".to_string(), operator.clone()),
             }
         }
-        _ => panic!("Unexpected expression, expected Unary {:?}", unary),
+        _ => RuntimeError::new("Unexpected expression, expected Unary".to_string()),
     }
 }
 
@@ -148,29 +183,11 @@ fn evaluate_equal(left: &Option<Literal>, right: &Option<Literal>) -> bool {
     }
 }
 
-impl PartialEq for Literal {
-    fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Literal::Number(l), Literal::Number(r)) => l == r,
-            (Literal::String(l), Literal::String(r)) => l == r,
-            (Literal::Boolean(l), Literal::Boolean(r)) => l == r,
-            (Literal::Identifier(l), Literal::Identifier(r)) => l == r,
-
-            _ => false,
-        }
-    }
-
-    fn ne(&self, other: &Self) -> bool {
-        !self.eq(other)
-    }
-}
-
 #[cfg(test)]
 mod test {
     use rstest::rstest;
 
     use super::*;
-    use crate::frontend::lex::token::Token;
 
     #[test]
     fn test_literal_equality() {
@@ -213,7 +230,8 @@ mod test {
             right: Box::new(Expression::Literal(Some(Literal::Number(1.0)))),
         };
 
-        assert_eq!(interpret(&expr), Some(Literal::Number(-1.0)));
+        let result = interpret(&expr);
+        assert_eq!(result, Ok(Some(Literal::Number(-1.0))));
     }
 
     #[rstest]
@@ -236,7 +254,7 @@ mod test {
             right: Box::new(Expression::Literal(Some(input))),
         };
 
-        assert_eq!(interpret(&expr), Some(expected));
+        assert_eq!(interpret(&expr), Ok(Some(expected)));
     }
 
     #[rstest]
@@ -254,7 +272,7 @@ mod test {
             right: Box::new(Expression::Literal(Some(right))),
         };
 
-        assert_eq!(interpret(&expr), Some(expected));
+        assert_eq!(interpret(&expr), Ok(Some(expected)));
     }
 
     #[rstest]
@@ -298,7 +316,7 @@ mod test {
             right: Box::new(Expression::Literal(Some(right))),
         };
 
-        assert_eq!(interpret(&expr), Some(expected));
+        assert_eq!(interpret(&expr), Ok(Some(expected)));
     }
 
     #[rstest]
@@ -350,7 +368,7 @@ mod test {
             right: Box::new(Expression::Literal(Some(right))),
         };
 
-        assert_eq!(interpret(&expr), Some(expected));
+        assert_eq!(interpret(&expr), Ok(Some(expected)));
     }
 
     #[rstest]
@@ -392,13 +410,13 @@ mod test {
             right: Box::new(Expression::Literal(Some(right))),
         };
 
-        assert_eq!(interpret(&expr), Some(Literal::Boolean(true)));
+        assert_eq!(interpret(&expr), Ok(Some(Literal::Boolean(true))));
     }
 
     #[test]
     fn test_grouping() {
         let expr = Expression::Grouping(Box::new(Expression::Literal(Some(Literal::Number(1.0)))));
 
-        assert_eq!(interpret(&expr), Some(Literal::Number(1.0)));
+        assert_eq!(interpret(&expr), Ok(Some(Literal::Number(1.0))));
     }
 }
