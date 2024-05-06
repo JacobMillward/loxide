@@ -42,6 +42,7 @@ pub fn run(lox_str: &str) {
 
     if let Err(err) = &expr {
         println!("Error on line {}: {}", err.token.line_number, err.message);
+        return;
     }
 
     let result = interpret(&expr.unwrap());
