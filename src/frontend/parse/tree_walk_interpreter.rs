@@ -101,6 +101,13 @@ fn evaluate_binary(binary: &Expression) -> Result<Option<Literal>, RuntimeError>
 
                 TokenType::Slash => match (left, right) {
                     (Some(Literal::Number(l)), Some(Literal::Number(r))) => {
+                        if r == 0.0 {
+                            return RuntimeError::with_token(
+                                "Division by zero.".to_string(),
+                                operator.clone(),
+                            );
+                        }
+
                         Ok(Some(Literal::Number(l / r)))
                     }
                     _ => RuntimeError::operands_must_be_numbers(operator.clone()),
@@ -488,6 +495,27 @@ mod test {
         };
 
         assert_eq!(interpret(&expr), Ok(Some(Literal::Boolean(true))));
+    }
+
+    #[test]
+    fn test_divide_by_zero() {
+        let operator = Token {
+            token_type: TokenType::Slash,
+            lexeme: "/".to_string(),
+            literal: None,
+            line_number: 0,
+        };
+
+        let expr = Expression::Binary {
+            left: Box::new(Expression::Literal(Some(Literal::Number(1.0)))),
+            operator: operator.clone(),
+            right: Box::new(Expression::Literal(Some(Literal::Number(0.0)))),
+        };
+
+        assert_eq!(
+            interpret(&expr),
+            RuntimeError::with_token("Division by zero.".to_string(), operator)
+        );
     }
 
     #[test]
