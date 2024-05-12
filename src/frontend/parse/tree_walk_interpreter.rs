@@ -38,7 +38,19 @@ fn evaluate_expression(expr: &Expression) -> Result<Option<Literal>, RuntimeErro
         Expression::Grouping(_) => evaluate_grouping(expr),
         Expression::Unary { .. } => evaluate_unary(expr),
         Expression::Literal(literal) => Ok(literal.clone()),
-        _ => RuntimeError::new(format!("Unexpected expression {:?}", expr)),
+        Expression::Ternary {
+            condition,
+            then_branch,
+            else_branch,
+        } => {
+            let condition = evaluate_expression(condition)?;
+
+            if is_truthy(&condition) {
+                evaluate_expression(then_branch)
+            } else {
+                evaluate_expression(else_branch)
+            }
+        }
     }
 }
 
